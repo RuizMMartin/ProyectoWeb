@@ -3,11 +3,12 @@
 @section('titulo', 'Carrito de Compras')
 
 @section('contenido')
+@php use Darryldecode\Cart\Facades\CartFacade as Cart; @endphp
 <section class="py-12">
     <div class="container mx-auto px-4">
         <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
             <div class="p-6">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Tu Carrito de Compras</h2>  
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Tu Carrito de Compras</h2>
 
                 @if (Cart::count())
                 <div class="overflow-x-auto">
@@ -18,7 +19,7 @@
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cantidad</th>
                                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                                <th></th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-200">
@@ -33,23 +34,7 @@
                                     </div>
                                 </td>
                                 <td class="px-4 py-4 text-sm text-gray-500">${{ number_format($item->price, 2) }}</td>
-                                <td class="px-4 py-4 text-sm text-gray-500">
-                                    <div class="flex items-center gap-2">
-                                        <form action="{{ route('updateCantidad') }}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="rowId" value="{{ $item->rowId }}">
-                                            <input type="hidden" name="accion" value="disminuir">
-                                            <button type="submit" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700 font-bold">−</button>
-                                        </form>
-                                        <span class="px-2">{{ $item->qty }}</span>
-                                        <form action="{{ route('updateCantidad') }}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="rowId" value="{{ $item->rowId }}">
-                                            <input type="hidden" name="accion" value="incrementar">
-                                            <button type="submit" class="px-2 py-1 bg-gray-200 rounded hover:bg-gray-300 text-gray-700 font-bold">+</button>
-                                        </form>
-                                    </div>
-                                </td>
+                                <td class="px-4 py-4 text-sm text-gray-500">{{ $item->qty }}</td>
                                 <td class="px-4 py-4 text-sm font-medium text-gray-900">${{ number_format($item->price * $item->qty, 2) }}</td>
                                 <td class="px-4 py-4 text-right text-sm font-medium">
                                     <form action="{{ route('removeItem') }}" method="POST">
@@ -68,15 +53,31 @@
                     </table>
                 </div>
 
+                <div class="mt-8 border-t border-gray-200 pt-6">
+                    <div class="flex justify-between">
+                        <span class="text-base font-medium text-gray-900">Subtotal:</span>
+                        <span class="text-base font-medium text-gray-900">${{ Cart::subtotal() }}</span>
+                    </div>
+                    <div class="flex justify-between mt-2">
+                        <span class="text-base font-medium text-gray-900">Impuestos:</span>
+                        <span class="text-base font-medium text-gray-900">${{ Cart::tax() }}</span>
+                    </div>
+                    <div class="flex justify-between mt-4 border-t border-gray-200 pt-4">
+                        <span class="text-lg font-bold text-gray-900">Total:</span>
+                        <span class="text-lg font-bold text-gray-900">${{ Cart::total() }}</span>
+                    </div>
+                </div>
+
                 <div class="mt-8 flex flex-col sm:flex-row justify-between gap-4">
                     <a href="{{ route('clear') }}" class="px-6 py-3 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors text-center">
-                        Vaciar Carrito
+                      Vaciar Carrito
                     </a>
-                    <form action="{{ route('hacerPedido') }}" method="GET">
-                        <button type="submit" class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-center w-full sm:w-auto">
-                            Confirmar Pedido
-                        </button>
-                    </form>
+                    <a href="{{ route('hacerPedido') }}" class="px-6 py-3 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-center">
+                        Finalizar Compra
+                    </a>
+                    <a href="{{ route('paypal.payment') }}" class="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-center">
+                        Pagar con PayPal
+                    </a>
                 </div>
                 @else
                 <div class="text-center py-12">

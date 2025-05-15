@@ -1,11 +1,11 @@
 @extends('plantilla/layout')
 
-@section('titulo', '- Productos')
+@section('titulo', '- Registro de Productos')
 
 @section('contenido')
 
     {{-- barra de busqueda --}}
-   <div class="mt-10">
+   <div>
         <form class="flex items-center max-w-sm mx-auto  ">   
             <label for="simple-search" class="sr-only">BUSCAR</label>
             <div class="relative w-full">
@@ -92,10 +92,9 @@
 </div> --}}
 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
     @foreach ($productos as $producto)
-    
         <div class="border rounded-lg p-4 shadow bg-white hover:shadow-lg transition duration-200">
             <a href="productos/{{ $producto->id }}/detalle" class="block">
-                <img src="{{ asset($producto->imagen1) }}" alt="Imagen 1" class="w-full h-auto object-cover transition duration-200">
+                <img src="{{ asset($producto->imagen1) }}" alt="{{ $producto->nombre }}" class="w-full h-40 object-cover rounded mb-2">
                 <h3 class="text-lg font-bold text-green-800">{{ $producto->nombre }}</h3>
                 <p class="text-gray-600 text-sm">{{ $producto->descripcion }}</p>
                 <p class="text-green-600 font-semibold mt-2">${{ number_format($producto->precio, 2) }}</p>

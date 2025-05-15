@@ -93,7 +93,6 @@ class CartController extends Controller
 
         Cart::destroy();
                 return redirect()->back()->with("success","Pedido realizado con éxito");
-                return view('/productos/catalogoProductos');
 
     }
     public function updateCantidad(Request $request)
@@ -103,11 +102,11 @@ class CartController extends Controller
 
         $item = Cart::get($rowId);
 
-        if ($accion === 'incrementar') {
+        /*if ($accion === 'incrementar') {
             Cart::update($rowId, $item->qty + 1);
         } elseif ($accion === 'disminuir' && $item->qty > 1) {
             Cart::update($rowId, $item->qty - 1);
-        }
+        }*/
 
         return redirect()->back();
     }

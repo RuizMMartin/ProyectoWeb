@@ -3,75 +3,85 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Srmklive\PayPal\Services\ExpressCheckout;
-use Gloudemans\Shoppingcart\Facades\Cart;
-
+use Srmklive\PayPal\Services\PayPal as PayPalClient;
+use Darryldecode\Cart\Facades\CartFacade as Cart;
 
 class PayPalController extends Controller
 {
-    public function checkout()
+public function payment()
 {
-    $provider = new ExpressCheckout;
+    $provider = new PayPalClient;
+    $provider->setApiCredentials(config('paypal'));
+    $token = $provider->getAccessToken();
+    $provider->setAccessToken($token);
+
+    $currency = env('PAYPAL_CURRENCY', 'USD');
 
     $items = [];
     foreach (Cart::content() as $item) {
         $items[] = [
             'name' => $item->name,
-            'price' => $item->price,
-            'qty' => $item->qty,
+            'quantity' => $item->qty,
+            'unit_amount' => [
+                'currency_code' => $currency,
+                'value' => number_format($item->price, 2, '.', ''),
+            ],
         ];
     }
 
-    $data['items'] = $items;
-    $data['invoice_id'] = uniqid();
-    $data['invoice_description'] = "Factura #{$data['invoice_id']}";
-    $data['return_url'] = route('paypal.success');
-    $data['cancel_url'] = route('paypal.cancel');
-    $data['total'] = floatval(Cart::total());
+    $order = $provider->createOrder([
+        'intent' => 'CAPTURE',
+        'purchase_units' => [[
+            'amount' => [
+                'currency_code' => $currency,
+                'value' => number_format(Cart::total(), 2, '.', ''),
+                'breakdown' => [
+                    'item_total' => [
+                        'currency_code' => $currency,
+                        'value' => number_format(Cart::total(), 2, '.', ''),
+                    ],
+                ],
+            ],
+            'items' => $items,
+        ]],
+        'application_context' => [
+            'cancel_url' => route('paypal.cancel'),
+            'return_url' => route('paypal.success'),
+        ],
+    ]);
 
-    try {
-        $response = $provider->setExpressCheckout($data);
-
-        if (isset($response['paypal_link'])) {
-            return redirect()->away($response['paypal_link']);
-        } else {
-            return redirect()->route('cart')->with('error', 'No se pudo generar el enlace de PayPal.');
+    if (isset($order['status']) && $order['status'] === 'CREATED') {
+        foreach ($order['links'] as $link) {
+            if ($link['rel'] === 'approve') {
+                return redirect()->away($link['href']);
+            }
         }
-
-    } catch (\Exception $e) {
-        return redirect()->route('cart')->with('error', 'Error en el checkout de PayPal: ' . $e->getMessage());
     }
+
+    return redirect()->route('carrito')->with('error', 'Error al crear la orden en PayPal.');
 }
+
+
 
     public function success(Request $request)
     {
-        $provider = new ExpressCheckout;
+        $provider = new PayPalClient;
+       $provider->setApiCredentials(config('paypal')); // ✅ Le pasas la configuración
+        $token = $provider->getAccessToken();
+        $provider->setAccessToken($token);
 
-        $token = $request->get('token');
-        $payerId = $request->get('PayerID');
+        $result = $provider->capturePaymentOrder($request->token);
 
-        $response = $provider->getExpressCheckoutDetails($token);
+        if (isset($result['status']) && $result['status'] === 'COMPLETED') {
+            Cart::destroy();
+            return redirect('/')->with('success', '¡Pago exitoso con PayPal!');
+        }
 
-        $data = [];
-        $data['items'] = [
-            [
-                'name' => 'Producto 1',
-                'price' => 10.00,
-                'desc'  => 'Descripción del producto 1',
-                'qty' => 1
-            ],
-        ];
-        $data['invoice_id'] = $response['INVNUM'] ?? uniqid();
-        $data['invoice_description'] = "Factura #{$data['invoice_id']}";
-        $data['total'] = 10.00;
-
-        $payment_status = $provider->doExpressCheckoutPayment($data, $token, $payerId);
-
-        return view('paypal.success', compact('payment_status'));
+        return redirect()->route('carrito')->with('error', 'Error al procesar el pago.');
     }
 
     public function cancel()
     {
-        return view('paypal.cancel');
+        return redirect()->route('carrito')->with('error', 'Pago cancelado.');
     }
 }

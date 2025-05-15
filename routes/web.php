@@ -106,7 +106,7 @@ Route::post('/productos/{id}/borrar', [ProductoController::class, 'borrar']);
 
 
 //Rutas para carrito de compras
-Route::view('cart','carrito/cart');
+Route::view('cart','carrito/cart')->name('carrito');
 //AgregarProductos
 Route::post('cart/add',[CartController::class,'add'])->name('add');
 //vistadeCheoutProductos
@@ -147,3 +147,8 @@ Route::get('/paypal/cancel', [PayPalController::class, 'cancel'])->name('paypal.
 //pedidos
 Route::get('/hacerPedido',[PedidoController::class,'hacerPedido'])->name('hacerPedido');
 Route::post('/finalizarPedido', [PedidoController::class, 'finalizarPedido'])->name('finalizarPedido');
+
+//metodo paypal 
+Route::get('/paypal', [PayPalController::class, 'payment'])->name('paypal.payment');
+Route::get('/paypal/success', [PayPalController::class, 'success'])->name('paypal.success');
+Route::get('/paypal/cancel', [PayPalController::class, 'cancel'])->name('paypal.cancel');

@@ -4,112 +4,120 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Producto;
-use Gloudemans\Shoppingcart\Facades\Cart;
+use Darryldecode\Cart\Facades\CartFacade as Cart;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-
 class CartController extends Controller
 {
-    //
-    public function add(Request $request) {
-    $request->validate([
-        'id' => 'required|exists:productos,id',
-        'cantidad' => 'required|integer|min:1'
-    ]);
-
-    $productos = Producto::find($request->id);
-
-    Cart::add(
-        $productos->id,
-        $productos->nombre,
-        $request->cantidad,
-        $productos->precio,
-        ['imagen1' => $productos->imagen1]
-    );
-
-    return redirect()->back()->with("success", "Item agregado: " . $productos->nombre);
-}
-
-    public function checkout(){
-        return view('carrito.cart');
+    protected function getCartInstance()
+    {
+        return Cart::session($this->getSessionId());
     }
 
-    public function removeItem(Request $request){
-        Cart::remove($request->rowId);
-        return redirect()->back()->with("success","Item Eliminado: ");
+    protected function getSessionId()
+    {
+        return Auth::check() ? Auth::id() : session()->getId();
     }
 
-    public function clear(){
-        Cart::destroy();
-        return redirect()->back()->with("success","Carrito Vacio ");
+    public function add(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|exists:productos,id',
+            'cantidad' => 'required|integer|min:1'
+        ]);
+
+        $producto = Producto::find($request->id);
+
+        $this->getCartInstance()->add([
+            'id' => $producto->id,
+            'name' => $producto->nombre,
+            'price' => $producto->precio,
+            'quantity' => $request->cantidad,
+            'attributes' => [
+                'imagen1' => $producto->imagen1,
+                'subtotal' => $producto->precio * $request->cantidad
+            ]
+        ]);
+
+        return redirect()->back()->with("success", "Item agregado: " . $producto->nombre);
+    }
+
+    public function checkout()
+    {
+        $cartItems = $this->getCartInstance()->getContent();
+        return view('carrito.cart', compact('cartItems'));
+    }
+
+    public function removeItem(Request $request)
+    {
+        $this->getCartInstance()->remove($request->id);
+        return redirect()->back()->with("success", "Item Eliminado");
+    }
+
+    public function clear()
+    {
+        $this->getCartInstance()->clear();
+        return redirect()->back()->with("success", "Carrito Vacío");
     }
 
     public function hacerPedido()
     {
-        $productos = Cart::content();
+        $cart = $this->getCartInstance();
+        $productos = $cart->getContent();
         
-        // Insertamos en la tabla pedidos y obtenemos el ID
         $pedido_id = DB::table('pedidos')->insertGetId([
-            'cliente_Id' => 1,
+            'cliente_Id' => Auth::id() ?? 1,
             'fecha' => now(),
             'iva' => 0,
             'descuento' => 0,
-            'total' => 0, 
-            //'estado' => 'activo',
+            'total' => $cart->getTotal(),
         ]);
 
-        $total = 0;
-
         foreach ($productos as $producto) {
-            // Acceder a los valores correctamente
-            $subtotal = $producto->qty * $producto->price;
-
             DB::table('productos_pedido')->insert([
                 'pedido_Id' => $pedido_id,
                 'producto_Id' => $producto->id,
-                'cantidad' => $producto->qty,
+                'cantidad' => $producto->quantity,
                 'precio' => $producto->price,
-               'subtotal' => $subtotal,
+                'subtotal' => $producto->price * $producto->quantity,
                 'descuento' => 0,
             ]);
 
-            $total += $subtotal;
-
-            $prod = DB::table('productos')->where('id', $producto->id)->first();
-            
-            if ($prod && isset($prod->existencia)) {
-                DB::table('productos')->where('id', $producto->id)->update([
-                    'existencia' => $prod->existencia - $producto->qty, // Restamos la cantidad vendida
-                ]);
-            } else {
-                dd("Error: Producto con ID {$producto->id} no encontrado o el campo 'existencia' no existe.");
+            $prod = Producto::find($producto->id);
+            if ($prod) {
+                $prod->decrement('existencia', $producto->quantity);
             }
-            
-
-
-
         }
 
-        Cart::destroy();
-                return redirect()->back()->with("success","Pedido realizado con éxito");
-
+        $cart->clear();
+        return redirect()->back()->with("success", "Pedido realizado con éxito");
     }
+
     public function updateCantidad(Request $request)
     {
-        $rowId = $request->input('rowId');
+        $cart = $this->getCartInstance();
+        $productId = $request->input('id');
         $accion = $request->input('accion');
 
-        $item = Cart::get($rowId);
+        $item = $cart->get($productId);
 
-        /*if ($accion === 'incrementar') {
-            Cart::update($rowId, $item->qty + 1);
-        } elseif ($accion === 'disminuir' && $item->qty > 1) {
-            Cart::update($rowId, $item->qty - 1);
-        }*/
+        if ($item) {
+            $newQty = $accion === 'incrementar' 
+                ? $item->quantity + 1 
+                : max(1, $item->quantity - 1);
+
+            $cart->update($productId, [
+                'quantity' => [
+                    'relative' => false,
+                    'value' => $newQty
+                ],
+                'attributes' => [
+                    'subtotal' => $item->price * $newQty
+                ]
+            ]);
+        }
 
         return redirect()->back();
     }
-        
-    
 }

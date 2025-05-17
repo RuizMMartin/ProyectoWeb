@@ -104,6 +104,18 @@ Route::get('/productos/{id}/mostrar', [ProductoController::class, 'mostrar']);
 Route::get('/catalogoProductos', [ProductoController::class, 'verProductos']);
 Route::post('/productos/{id}/borrar', [ProductoController::class, 'borrar']);
 
+//Martin - proveedores y productos.
+Route::get('/listaProveedores', [ProveedorController::class, 'listaProveedores']);
+Route::get('/registroProveedores', [ProveedorController::class, 'registroProveedores']);
+
+Route::get('/proveedores/listaProveedores', [ProveedorController::class, 'listaProveedores']);
+Route::get('/proveedores/registroProveedores', [ProveedorController::class, 'registroProveedores']);
+Route::post('/proveedores/guardar', [ProveedorController::class, 'guardar']);
+Route::get('/proveedores/{id}/mostrar', [ProveedorController::class, 'mostrar']);
+Route::get('/proveedores/{id}/editar', [ProveedorController::class, 'editar']);
+Route::put('/proveedores/{id}/actualizar', [ProveedorController::class, 'actualizar']);
+Route::delete('/proveedores/{id}/borrar', [ProveedorController::class, 'borrar']);
+
 
 //Rutas para carrito de compras
 Route::view('cart','carrito/cart')->name('carrito');
@@ -120,29 +132,7 @@ Route::post('/carrito/cantidad', [CartController::class, 'updateCantidad'])->nam
 
 
 //pedidos
-Route::get('pedidos/listaPedidos',[CartController::class,'hacerPedido'])->name('hacerPedido');
-
-
-
-
-
-//Martin - proveedores y productos.
-Route::get('/listaProveedores', [ProveedorController::class, 'listaProveedores']);
-Route::get('/registroProveedores', [ProveedorController::class, 'registroProveedores']);
-
-Route::get('/proveedores/listaProveedores', [ProveedorController::class, 'listaProveedores']);
-Route::get('/proveedores/registroProveedores', [ProveedorController::class, 'registroProveedores']);
-Route::post('/proveedores/guardar', [ProveedorController::class, 'guardar']);
-Route::get('/proveedores/{id}/mostrar', [ProveedorController::class, 'mostrar']);
-Route::get('/proveedores/{id}/editar', [ProveedorController::class, 'editar']);
-Route::put('/proveedores/{id}/actualizar', [ProveedorController::class, 'actualizar']);
-Route::delete('/proveedores/{id}/borrar', [ProveedorController::class, 'borrar']);
-
-//pago
-Route::get('/paypal/checkout', [PayPalController::class, 'checkout'])->name('paypal.checkout');
-Route::get('/paypal/success', [PayPalController::class, 'success'])->name('paypal.success');
-Route::get('/paypal/cancel', [PayPalController::class, 'cancel'])->name('paypal.cancel');
-
+Route::get('pedidos/listaPedidos',[CartController::class,'hacerPedido'])->name('listarPedido');
 
 //pedidos
 Route::get('/hacerPedido',[PedidoController::class,'hacerPedido'])->name('hacerPedido');
